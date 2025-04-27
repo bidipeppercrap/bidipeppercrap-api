@@ -1,4 +1,4 @@
-import { Hono, Context } from "hono";
+import { Hono } from "hono";
 import * as OTPAuth from "otpauth";
 import { validator } from "hono/validator";
 import { registerSchema, totpGenerateSchema } from "../schema/user";
