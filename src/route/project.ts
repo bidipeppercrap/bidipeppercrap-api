@@ -1,8 +1,12 @@
 import { Hono } from "hono";
 import { validator } from "hono/validator";
 import { createProjectSchema } from "../schema/project";
+import { Bindings } from "../bindings";
+import { jwtAuth } from "../middleware/auth";
 
-const router = new Hono();
+const router = new Hono<{ Bindings: Bindings }>();
+
+router.use("/*", jwtAuth);
 
 router.get("/", (c) => {
     return c.text("project")

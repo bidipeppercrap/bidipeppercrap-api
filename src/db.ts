@@ -1,9 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
-
-export interface Env {
-  DB: D1Database;
-}
+import { Bindings } from "./bindings";
 
 export class DatabaseHelper {
-  static create = (env: Env) => drizzle(env.DB);
+  static create = (env: Bindings) => drizzle(env.DB);
 }
