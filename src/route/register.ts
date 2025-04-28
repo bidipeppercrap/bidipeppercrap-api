@@ -6,15 +6,17 @@ import { DatabaseHelper } from "../db";
 import { users } from "../db/schema/user";
 import { Bindings } from "../bindings";
 import { count } from "drizzle-orm";
+import { jwtAuth } from "../middleware/auth";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
 router.post(
     "/generate-totp",
+    jwtAuth,
     validator("json", (value, c) => {
         const parsed = totpGenerateSchema.safeParse(value);
         if (!parsed.success) {
-            return c.text("Invalid data", 401);
+            return c.text("Invalid data", 400);
         }
         return parsed.data;
     }),
@@ -38,7 +40,7 @@ async function createUser(c: Context, username: string, uri: string) {
     try {
         OTPAuth.URI.parse(uri);
     } catch(error) {
-        return c.text("TOTP invalid", 401);
+        return c.text("TOTP invalid", 400);
     }
 
     const user = {
@@ -57,7 +59,7 @@ router.post(
     validator("json", (value, c) => {
         const parsed = registerSchema.safeParse(value);
         if (!parsed.success) {
-            return c.text("Invalid", 401);
+            return c.text("Invalid", 400);
         }
         return parsed.data;
     }),
@@ -77,6 +79,7 @@ router.post(
 
 router.post(
     "/",
+    jwtAuth,
     validator("json", (value, c) => {
         const parsed = registerSchema.safeParse(value);
         if (!parsed.success) {

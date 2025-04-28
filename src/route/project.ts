@@ -1,31 +1,68 @@
 import { Hono } from "hono";
-import { validator } from "hono/validator";
-import { createProjectSchema } from "../schema/project";
 import { Bindings } from "../bindings";
 import { jwtAuth } from "../middleware/auth";
+import { DatabaseHelper } from "../db";
+import { projects } from "../db/schema/project";
+import { requestQueryValidator } from "../validator/request-query";
+import { eq, ilike } from "drizzle-orm";
+import { createProjectValidator } from "../validator/create-project";
+import { z } from "zod";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
-router.use("/*", jwtAuth);
+router.get("/", requestQueryValidator("query"), async (c) => {
+    const { q, limit, offset, unlimited } = c.req.valid("query");
 
-router.get("/", (c) => {
-    return c.text("project")
+    const db = DatabaseHelper.create(c.env);
+    const term = q ? ilike(projects.name, `%${q}%`) : undefined;
+    let query = db.select().from(projects)
+        .where(term)
+        .limit(unlimited ? 0 : limit)
+        .offset(unlimited ? 0 : offset);
+
+    const result = await query;
+
+    return c.json(result);
 });
 
 router.post(
     "/",
-    validator("json", (value, c) => {
-        const parsed = createProjectSchema.safeParse(value);
-        if (!parsed.success) {
-            return c.text("Invalid!", 401);
-        }
-        return parsed.data;
-    }),
-    (c) => {
+    jwtAuth,
+    createProjectValidator("json"),
+    async (c) => {
         const data = c.req.valid("json");
 
-        return c.json(data.name, 201);
+        const db = DatabaseHelper.create(c.env);
+        const created = await db.insert(projects).values({
+            name: data.name,
+            target_url: data.targetUrl,
+            logo_url: data.logoUrl
+        }).returning();
+
+        return c.json(created, 201);
     }
 );
+
+router.put("/:id", jwtAuth, createProjectValidator("json"), async (c) => {
+    const id = z.number().safeParse(c.req.param("id"));
+    if (id.error) return c.text("invalid id", 400);
+
+    const db = DatabaseHelper.create(c.env);
+    const query = await db.select().from(projects).where(eq(projects.id, id.data!));
+    if (query.length < 1) return c.text("project not found", 400);
+
+    const { name, targetUrl, logoUrl } = c.req.valid("json");
+    const project = query[0];
+    const result = await db.update(projects)
+        .set({
+            name,
+            target_url: targetUrl,
+            logo_url: logoUrl
+        })
+        .where(eq(projects.id, project.id))
+        .returning();
+    
+    return c.json(result);
+})
 
 export default router;

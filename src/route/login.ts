@@ -15,7 +15,7 @@ router.post(
     validator("json", (value, c) => {
         const parsed = loginSchema.safeParse(value);
         if (!parsed.success) {
-            return c.text("Invalid", 401);
+            return c.text("Invalid", 400);
         }
         return parsed.data;
     }),
