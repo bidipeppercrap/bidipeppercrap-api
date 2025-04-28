@@ -6,6 +6,7 @@ import { socials } from "../db/schema/social";
 import { requestQueryValidator } from "../validator/request-query";
 import { eq, like } from "drizzle-orm";
 import { createSocialValidator } from "../validator/create-social";
+import { checkSocialExistValidator } from "../validator/check-social-exist";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -42,20 +43,11 @@ router.post(
     }
 );
 
-router.put("/:id", jwtAuth, createSocialValidator("json"), async (c) => {
-    try {
-        parseInt(c.req.param("id"));
-    } catch (error) {
-        return c.text('invalid id', 400);
-    }
-    const id = parseInt(c.req.param("id"));
+router.put("/:id", jwtAuth, checkSocialExistValidator("param"), createSocialValidator("json"), async (c) => {
+    const { name, targetUrl, faClass } = c.req.valid("json");
+    const social = c.req.valid("param");
 
     const db = DatabaseHelper.create(c.env);
-    const query = await db.select().from(socials).where(eq(socials.id, id));
-    if (query.length < 1) return c.text("social not found", 400);
-
-    const { name, targetUrl, faClass } = c.req.valid("json");
-    const social = query[0];
     const result = await db.update(socials)
         .set({
             name,
@@ -65,6 +57,14 @@ router.put("/:id", jwtAuth, createSocialValidator("json"), async (c) => {
         .where(eq(socials.id, social.id))
         .returning();
     
+    return c.json(result);
+});
+
+router.delete("/:id", jwtAuth, checkSocialExistValidator("param"), async (c) => {
+    const { id } = c.req.valid("param");
+    const db = DatabaseHelper.create(c.env);
+    const result = await db.delete(socials).where(eq(socials.id, id)).returning();
+
     return c.json(result);
 })
 
