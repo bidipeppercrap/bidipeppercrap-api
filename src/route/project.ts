@@ -4,9 +4,8 @@ import { jwtAuth } from "../middleware/auth";
 import { DatabaseHelper } from "../db";
 import { projects } from "../db/schema/project";
 import { requestQueryValidator } from "../validator/request-query";
-import { eq, ilike } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { createProjectValidator } from "../validator/create-project";
-import { z } from "zod";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -14,11 +13,11 @@ router.get("/", requestQueryValidator("query"), async (c) => {
     const { q, limit, offset, unlimited } = c.req.valid("query");
 
     const db = DatabaseHelper.create(c.env);
-    const term = q ? ilike(projects.name, `%${q}%`) : undefined;
+    const term = q ? like(projects.name, `%${q}%`) : undefined;
     let query = db.select().from(projects)
         .where(term)
-        .limit(unlimited ? 0 : limit)
-        .offset(unlimited ? 0 : offset);
+        .limit(unlimited ? undefined : limit)
+        .offset(unlimited ? undefined : offset);
 
     const result = await query;
 
@@ -44,11 +43,15 @@ router.post(
 );
 
 router.put("/:id", jwtAuth, createProjectValidator("json"), async (c) => {
-    const id = z.number().safeParse(c.req.param("id"));
-    if (id.error) return c.text("invalid id", 400);
+    try {
+        parseInt(c.req.param("id"));
+    } catch (error) {
+        return c.text('invalid id', 400);
+    }
+    const id = parseInt(c.req.param("id"));
 
     const db = DatabaseHelper.create(c.env);
-    const query = await db.select().from(projects).where(eq(projects.id, id.data!));
+    const query = await db.select().from(projects).where(eq(projects.id, id));
     if (query.length < 1) return c.text("project not found", 400);
 
     const { name, targetUrl, logoUrl } = c.req.valid("json");

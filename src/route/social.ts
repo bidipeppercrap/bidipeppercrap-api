@@ -4,9 +4,8 @@ import { jwtAuth } from "../middleware/auth";
 import { DatabaseHelper } from "../db";
 import { socials } from "../db/schema/social";
 import { requestQueryValidator } from "../validator/request-query";
-import { eq, ilike } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { createSocialValidator } from "../validator/create-social";
-import { z } from "zod";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
@@ -14,11 +13,11 @@ router.get("/", requestQueryValidator("query"), async (c) => {
     const { q, limit, offset, unlimited } = c.req.valid("query");
 
     const db = DatabaseHelper.create(c.env);
-    const term = q ? ilike(socials.name, `%${q}%`) : undefined;
+    const term = q ? like(socials.name, `%${q}%`) : undefined;
     let query = db.select().from(socials)
         .where(term)
-        .limit(unlimited ? 0 : limit)
-        .offset(unlimited ? 0 : offset);
+        .limit(unlimited ? undefined : limit)
+        .offset(unlimited ? undefined : offset);
 
     const result = await query;
 
@@ -44,11 +43,15 @@ router.post(
 );
 
 router.put("/:id", jwtAuth, createSocialValidator("json"), async (c) => {
-    const id = z.number().safeParse(c.req.param("id"));
-    if (id.error) return c.text("invalid id", 400);
+    try {
+        parseInt(c.req.param("id"));
+    } catch (error) {
+        return c.text('invalid id', 400);
+    }
+    const id = parseInt(c.req.param("id"));
 
     const db = DatabaseHelper.create(c.env);
-    const query = await db.select().from(socials).where(eq(socials.id, id.data!));
+    const query = await db.select().from(socials).where(eq(socials.id, id));
     if (query.length < 1) return c.text("social not found", 400);
 
     const { name, targetUrl, faClass } = c.req.valid("json");

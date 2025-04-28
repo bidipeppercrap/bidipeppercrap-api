@@ -4,20 +4,23 @@ import { z } from "zod";
 
 const schema = z.object({
     q: z.string().nullable(),
-    limit: z.number().nullable(),
-    offset: z.number().nullable(),
-    unlimited: z.boolean().nullable()
+    limit: z.coerce.number().nullable(),
+    offset: z.coerce.number().nullable(),
+    unlimited: z.coerce.boolean().nullable()
 });
 
 export const requestQueryValidator = (query: keyof ValidationTargets) => {
     const callback: ValidationFunction<Record<string, string | string[]>, any, any, string> = (value, c) => {
-        const parsed = schema.safeParse(value);
+        const queryParams = {
+            q: value.q ?? "",
+            limit: value.limit ?? 10,
+            offset: value.offset ?? 0,
+            unlimited: value.unlimited ?? false
+        }
+        const parsed = schema.safeParse(queryParams);
         if (!parsed.success) {
             return c.text("invalid query", 400);
         }
-
-        if (!parsed.data.limit) parsed.data.limit = 10;
-        if (!parsed.data.offset) parsed.data.offset = 0;
 
         return parsed.data;
     };
