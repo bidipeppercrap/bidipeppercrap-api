@@ -5,14 +5,14 @@ import { registerSchema, totpGenerateSchema } from "../schema/user";
 import { DatabaseHelper } from "../db";
 import { users } from "../db/schema/user";
 import { Bindings } from "../bindings";
-import { count } from "drizzle-orm";
 import { jwtAuth } from "../middleware/auth";
+import { checkRootExist } from "../validator/check-root-exist";
 
 const router = new Hono<{ Bindings: Bindings }>();
 
 router.post(
     "/generate-totp",
-    jwtAuth,
+    checkRootExist,
     validator("json", (value, c) => {
         const parsed = totpGenerateSchema.safeParse(value);
         if (!parsed.success) {
@@ -56,6 +56,7 @@ async function createUser(c: Context, username: string, uri: string) {
 
 router.post(
     "/root",
+    checkRootExist,
     validator("json", (value, c) => {
         const parsed = registerSchema.safeParse(value);
         if (!parsed.success) {
@@ -65,12 +66,6 @@ router.post(
     }),
     async (c) => {
         const { username, uri } = c.req.valid("json");
-        const db = DatabaseHelper.create(c.env);
-        const countResult = await db.select({ userCount: count() }).from(users);
-        const { userCount } = countResult[0];
-
-        if (userCount > 0) return c.json('root already exists', 401);
-        
         const result = await createUser(c, username, uri);
 
         return c.json(result);
