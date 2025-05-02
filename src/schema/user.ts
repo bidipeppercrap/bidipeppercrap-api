@@ -6,7 +6,8 @@ export const totpGenerateSchema = z.object({
 
 export const registerSchema = z.object({
     username: z.string(),
-    uri: z.string()
+    uri: z.string(),
+    token: z.string()
 });
 
 export const loginSchema = z.object({

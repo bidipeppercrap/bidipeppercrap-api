@@ -12,7 +12,7 @@ export const checkRootExist = async (_: Context<{ Bindings: Bindings }>, next: a
         if (count > 0) isRootExist = true;
     }
 
-    if (!isRootExist) next();
+    if (!isRootExist) await next();
     else return _.text("root already exist", 400);
 }
 

@@ -48,7 +48,7 @@ router.post(
             });
         }
 
-        return c.json('invalid token', 401);
+        return c.json('invalid token', 400);
     }
 )
 

@@ -25,6 +25,27 @@ router.get("/", requestQueryValidator("query"), async (c) => {
     return c.json(result);
 });
 
+router.get("/:id", requestQueryValidator("query"), async (c) => {
+    const idParam = c.req.param('id');
+    let id: number;
+
+    try {
+        id = parseInt(idParam);
+    }
+    catch (error) {
+        return c.text("cannot parse id", 400);
+    }
+
+    const db = DatabaseHelper.create(c.env);
+    let query = db.select().from(socials)
+        .where(eq(socials.id, id));
+
+    const result = await query;
+    const social = result[0];
+
+    return c.json(social);
+});
+
 router.post(
     "/",
     jwtAuth,

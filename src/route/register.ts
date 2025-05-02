@@ -6,9 +6,16 @@ import { DatabaseHelper } from "../db";
 import { users } from "../db/schema/user";
 import { Bindings } from "../bindings";
 import { jwtAuth } from "../middleware/auth";
-import { checkRootExist } from "../validator/check-root-exist";
+import { checkRootExist, isRootExist } from "../validator/check-root-exist";
+import { sign } from "hono/jwt";
 
 const router = new Hono<{ Bindings: Bindings }>();
+
+router.get('check-root-exist', checkRootExist, (c) => {
+    return c.json({
+        isRootExist: false
+    });
+});
 
 router.post(
     "/generate-totp",
@@ -36,11 +43,25 @@ router.post(
     }
 );
 
-async function createUser(c: Context, username: string, uri: string) {
+async function createUser(c: Context, username: string, uri: string, token: string) {
+    let totp;
+
     try {
-        OTPAuth.URI.parse(uri);
+        totp = OTPAuth.URI.parse(uri);
     } catch(error) {
-        return c.text("TOTP invalid", 400);
+        return {
+            error: true,
+            message: "Invalid URI"
+        }
+    }
+
+    const delta = totp.validate({ token, window: 1 });
+
+    if (delta === null) {
+        return {
+            error: true,
+            message: "Invalid Token"
+        }
     }
 
     const user = {
@@ -49,9 +70,21 @@ async function createUser(c: Context, username: string, uri: string) {
     }
 
     const db = DatabaseHelper.create(c.env);
-    const result = await db.insert(users).values(user);
+    const created = await db.insert(users).values(user).returning();
+    const { id } = created[0];
 
-    return result;
+    const payload = {
+        id,
+        username,
+        exp: Math.floor(Date.now()) * 365
+    }
+    const jwt = await sign(payload, c.env.JWT_SECRET);
+
+    return {
+        id,
+        username,
+        jwt
+    };
 }
 
 router.post(
@@ -65,8 +98,12 @@ router.post(
         return parsed.data;
     }),
     async (c) => {
-        const { username, uri } = c.req.valid("json");
-        const result = await createUser(c, username, uri);
+        const { username, uri, token } = c.req.valid("json");
+        const result = await createUser(c, username, uri, token);
+
+        if (result.error) {
+            return c.json(result, 400);
+        }
 
         return c.json(result);
     }
@@ -83,8 +120,12 @@ router.post(
         return parsed.data;
     }),
     async (c) => {
-        const { username, uri } = c.req.valid("json");
-        const result = await createUser(c, username, uri);
+        const { username, uri, token } = c.req.valid("json");
+        const result = await createUser(c, username, uri, token);
+
+        if (result.error) {
+            return c.json(result, 400);
+        }
 
         return c.json(result);
     }
