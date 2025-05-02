@@ -6,7 +6,7 @@ import { DatabaseHelper } from "../db";
 import { users } from "../db/schema/user";
 import { Bindings } from "../bindings";
 import { jwtAuth } from "../middleware/auth";
-import { checkRootExist, isRootExist } from "../validator/check-root-exist";
+import { checkRootExist } from "../validator/check-root-exist";
 import { sign } from "hono/jwt";
 
 const router = new Hono<{ Bindings: Bindings }>();

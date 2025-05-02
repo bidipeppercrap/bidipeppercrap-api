@@ -15,7 +15,7 @@ router.post(
     validator("json", (value, c) => {
         const parsed = loginSchema.safeParse(value);
         if (!parsed.success) {
-            return c.text("Invalid", 400);
+            return c.json({error: true, message: "invalid data format"}, 400);
         }
         return parsed.data;
     }),
@@ -27,7 +27,7 @@ router.post(
             .from(users)
             .where(eq(users.username, username));
 
-        if (result.length < 1) return c.text("username not found", 401);
+        if (result.length < 1) return c.json({error: true, message: "username not found"}, 401);
         const { uri, id } = result[0];
 
         const totp = OTPAuth.URI.parse(uri);
@@ -48,7 +48,7 @@ router.post(
             });
         }
 
-        return c.json('invalid token', 400);
+        return c.json({error: true, message: 'invalid token'}, 400);
     }
 )
 
