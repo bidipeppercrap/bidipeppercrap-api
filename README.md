@@ -3,7 +3,9 @@
 ## Setup
 
 1. `npm i`
+1. Create D1 database `bidipeppercrap-com` and fill in the `.dev.vars`
 1. `npx wrangler d1 migrations apply <database_name> (--local/--remote)`
+1. Create R2 bucket `bidipeppercrap-com`
 
 ## To generate migration
 

@@ -10,7 +10,7 @@
       "database_id": "ceb0d271-1d28-4e62-8664-59d3e90dafe2",
       "migrations_dir": "drizzle"
     }
-  ]
+  ],
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
@@ -23,12 +23,12 @@
   //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
   //   }
   // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
+  "r2_buckets": [
+    {
+      "binding": "R2_BIDIPEPPERCRAP_COM",
+      "bucket_name": "bidipeppercrap-com"
+    }
+  ],
   // "d1_databases": [
   //   {
   //     "binding": "MY_DB",
