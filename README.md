@@ -11,6 +11,10 @@
 
 `npx drizzle-kit generate`
 
+## Worker
+
+1. `npm run deploy`
+
 ## Credit
 
 Made with Hono, Drizzle, Cloudflare D1
